@@ -7,7 +7,7 @@ on:
 
 jobs:
   build-and-deploy:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
 
     steps:
       - name: Checkout Source
@@ -17,15 +17,24 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 21
+          java-version: '21'
           cache: maven
 
       - name: Build Application
         run: mvn clean package -DskipTests
 
+      - name: Stop Old Container
+        run: |
+          docker stop demo-container || true
+          docker rm demo-container || true
+
+      - name: Remove Old Image
+        run: |
+          docker rmi demo:v1 || true
+
       - name: Build Docker Image
         run: docker build -t demo:v1 .
 
-      - name: Deployment
+      - name: Run New Container
         run: |
-          echo "Deploy your application here"
+          docker run -d --name demo-container -p 8080:8080 demo:v1
